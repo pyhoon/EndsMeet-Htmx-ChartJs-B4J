@@ -97,17 +97,38 @@ Sub UpdateChartData
     ' Create JavaScript response
     Dim js As String = $"<script>
     if (window.myChart) {
-        window.myChart.data = {
-            labels: ${ToJsonArray(labels)},
-            datasets: [{
-                label: 'Sales Data',
-                data: ${ToJsonArray(dataPoints)},
-                backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                borderColor: 'rgba(54, 162, 235, 1)',
-                borderWidth: 2,
-                tension: 0.3
-            }]
-        };
+		// Destroy old chart to free canvas
+		window.myChart.destroy();
+
+        const ctx = document.getElementById('myChart').getContext('2d');
+
+        window.myChart = new Chart(ctx, {
+	        type: 'line',
+	        data: {
+	            labels: ${ToJsonArray(labels)},
+	            datasets: [{
+	                label: 'Sales Data',
+	                data: ${ToJsonArray(dataPoints)},
+	                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+	                borderColor: 'rgba(54, 162, 235, 1)',
+	                borderWidth: 2,
+	                tension: 0.3
+	            }]
+			},
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    title: {
+                        display: true,
+                        text: 'Real-time Data Visualization'
+                    }
+                }
+            }
+        });
         window.myChart.update();
         showNotification('Chart updated via JS response!');
     }
@@ -174,50 +195,63 @@ End Sub
 
 Sub GetRandomData
 	LogColor("GetRandomData", Main.COLOR_BLUE)
-    ' Generate random data
+	' Generate random data
 	RndSeed(DateTime.Now)
-	
-    Dim chartType As String = IIf(Request.ParameterMap.ContainsKey("type"), Request.GetParameter("type"), "bar")
-    Dim dataPoints As Int = IIf(Request.ParameterMap.ContainsKey("points"), Request.GetParameter("points"), 6)
-    
-    If dataPoints > 12 Then dataPoints = 12
-    If dataPoints < 3 Then dataPoints = 3
 
-    Dim labels As List
-    labels.Initialize
-    Dim data As List
-    data.Initialize
+	Dim dataPoints As Int = IIf(Request.ParameterMap.ContainsKey("points"), Request.GetParameter("points"), 6)
     
-    For i = 1 To dataPoints
-        labels.Add($"Day ${i}"$)
-        data.Add(Rnd(10, 100))
-    Next
+	If dataPoints > 6 Then dataPoints = 6
+	If dataPoints < 3 Then dataPoints = 3
+
+	Dim labels As List
+	labels.Initialize
+	Dim data As List
+	data.Initialize
+	Dim backgroundColor As List
+	backgroundColor.Initialize
+	
+	Dim Colors() As String = Array As String( _
+	"rgb(255, 99, 132)", _
+	"rgb(54, 162, 235)", _
+	"rgb(255, 206, 86)", _
+	"rgb(75, 192, 192)", _
+	"rgb(153, 102, 255)", _
+	"rgb(255, 159, 64)" _
+	)
+	
+	For i = 1 To dataPoints
+		labels.Add($"Day ${i}"$)
+		data.Add(Rnd(10, 100))
+		backgroundColor.Add(Colors(i-1))
+	Next
     
-    Dim RandomData As Map = CreateMap( _
+	Dim RandomData As Map = CreateMap( _
+		"type": "pie", _
         "data": CreateMap( _
-            "labels": labels, _
+			"labels": labels, _
             "datasets": Array As Map(CreateMap( _
-                "label": "Random Data", _
-				"type": chartType, _
                 "data": data, _
-                "backgroundColor": GetRandomColor, _
-                "borderColor": GetRandomColor, _
-                "borderWidth": 2 _
+                "backgroundColor": backgroundColor, _
+				"hoverOffset": 4 _
             )) _
+        ), _
+		"options": CreateMap( _
+            "responsive": True, _
+            "plugins": CreateMap( _
+                "legend": CreateMap( _
+                    "position": "top" _
+               	), _
+                "title": CreateMap( _
+                    "display": True, _
+                    "text": "My Pie Chart" _
+                ) _
+            ) _
         ) _
     )
+	Dim json As String = RandomData.As(JSON).ToString
+	Log(json)
 	Response.ContentType = WebApiUtils.CONTENT_TYPE_JSON
-	Response.Write(RandomData.As(JSON).ToString)
-End Sub
-
-Sub GetRandomColor As String
-	RndSeed(DateTime.Now)
-    Dim colors As List = Array As String( _
-        "rgba(255, 99, 132, ", "rgba(54, 162, 235, ", "rgba(255, 206, 86, ", _
-        "rgba(75, 192, 192, ", "rgba(153, 102, 255, ", "rgba(255, 159, 64, " _
-    )
-    Dim color As String = colors.Get(Rnd(0, colors.Size))
-    Return color & "1)" ' Solid color for border
+	Response.Write(json)
 End Sub
 
 ' Helper function to convert List to JSON array

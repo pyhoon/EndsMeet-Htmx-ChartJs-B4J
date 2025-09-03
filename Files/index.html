@@ -1,13 +1,11 @@
 <!DOCTYPE html>
 <html>
-
 <head>
     <title>B4J EndsMeet + Chart.js + HTMX</title>
     <script src="https://unpkg.com/htmx.org@1.9.6"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="css/main.css">
 </head>
-
 <body>
     <div class="container">
         <h1>B4J EndsMeet + Chart.js + HTMX</h1>
@@ -31,15 +29,6 @@
             <button class="btn-danger" onclick="loadRandomData()">
                 Random Data <span class="loading" id="random-loading" style="display:none"></span>
             </button>
-
-            <select id="chartType" onchange="changeChartType()">
-                <option value="line">Line Chart</option>
-                <option value="bar">Bar Chart</option>
-                <option value="pie">Pie Chart</option>
-                <option value="doughnut">Doughnut Chart</option>
-                <option value="radar">Radar Chart</option>
-                <option value="polarArea">Polar Area</option>
-            </select>
         </div>
 
         <div class="chart-container">
@@ -52,10 +41,10 @@
 
     <script>
         // Initialize chart
-        let chartType = document.getElementById('chartType').value;
         const ctx = document.getElementById('myChart').getContext('2d');
+
         window.myChart = new Chart(ctx, {
-            type: chartType,
+            type: 'line',
             data: {
                 labels: [],
                 datasets: [{
@@ -79,19 +68,6 @@
                         display: true,
                         text: 'Real-time Data Visualization'
                     }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: {
-                            drawBorder: false
-                        }
-                    },
-                    x: {
-                        grid: {
-                            display: false
-                        }
-                    }
                 }
             }
         });
@@ -99,11 +75,33 @@
         // Handle JSON response
         function updateChartFromJson(response) {
             try {
-                console.log('JSON Response:', response);
                 const data = JSON.parse(response);
-                window.myChart.type = chartType;
-                window.myChart.data = data;
-                window.myChart.update();
+
+                if (window.myChart) {
+                    // Destroy old chart to free canvas
+                    window.myChart.destroy();
+
+                    // Create new chart instance with preserved data and new type
+                    const ctx = document.getElementById('myChart').getContext('2d');
+                    window.myChart = new Chart(ctx, {
+                        type: 'line',
+                        data: data,
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'top',
+                                },
+                                title: {
+                                    display: true,
+                                    text: 'Real-time Data Visualization'
+                                }
+                            }
+                        }
+                    });
+                }
+
                 showNotification('Chart updated from JSON!');
             } catch (error) {
                 console.error('Error parsing JSON:', error);
@@ -114,12 +112,32 @@
         // Handle API response
         function updateFromApi(response) {
             try {
-                console.log('API Response:', response);
                 const result = JSON.parse(response);
                 if (result.success) {
-                    window.myChart.type = result.type;
-                    window.myChart.data = result.data;
-                    window.myChart.update();
+                    if (window.myChart) {
+                        // Destroy old chart to free canvas
+                        window.myChart.destroy();
+
+                        // Create new chart instance with preserved data and new type
+                        const ctx = document.getElementById('myChart').getContext('2d');
+                        window.myChart = new Chart(ctx, {
+                            type: result.type,
+                            data: result.data,
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: {
+                                        position: 'top',
+                                    },
+                                    title: {
+                                        display: true,
+                                        text: 'Real-time Data Visualization'
+                                    }
+                                }
+                            }
+                        });
+                    }
                     showNotification('Multi-series data loaded!');
                 }
             } catch (error) {
@@ -131,14 +149,30 @@
         function loadRandomData() {
             const loading = document.getElementById('random-loading');
             loading.style.display = 'inline-block';
-            // console.log('chartType:', this.chartType);
 
-            fetch(`/api/random?type=${chartType}&points=6`)
+            fetch(`/api/random?points=5`)
                 .then(response => response.json())
                 .then(data => {
-                    window.myChart.type = data.type;
-                    window.myChart.data = data.data;
-                    window.myChart.update();
+
+                    if (window.myChart) {
+                        // Destroy old chart to free canvas
+                        window.myChart.destroy();
+
+                        // Create new chart instance with preserved data and new type
+                        const ctx = document.getElementById('myChart').getContext('2d');
+                        window.myChart = new Chart(ctx, {
+                            type: 'pie',
+                            data: data.data,
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: { position: 'top' },
+                                    title: { display: true, text: 'Real-time Data Visualization' }
+                                }
+                            }
+                        });
+                    }
                     showNotification('Random data loaded!');
                 })
                 .catch(error => {
@@ -148,14 +182,6 @@
                 .finally(() => {
                     loading.style.display = 'none';
                 });
-        }
-
-        // Change chart type
-        function changeChartType() {
-            console.log('Changing chart type...');
-            const type = document.getElementById('chartType').value;
-            window.myChart.type = type;
-            window.myChart.update();
         }
 
         // Show notification
