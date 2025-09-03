@@ -1,0 +1,44 @@
+﻿AppType=StandardJava
+Build1=Default,com.example
+File1=config.example
+File2=index.html
+File3=LICENSE
+FileGroup1=Default Group
+FileGroup2=Default Group
+FileGroup3=Default Group
+Group=App
+Library1=endsmeet
+Library2=jcore
+Library3=webapiutils
+Module1=HttpsFilter
+Module2=Index
+NumberOfFiles=3
+NumberOfLibraries=3
+NumberOfModules=2
+Version=10.3
+@EndOfDesignText@
+'Non-UI application (console / server application)
+#Region Project Attributes 
+	#CommandLineArgs:
+	#MergeLibraries: True
+#End Region
+' LibDownloader: ide://run?file=%JAVABIN%\java.exe&Args=-jar&Args=%ADDITIONAL%\..\B4X\libget-non-ui.jar&Args=%PROJECT%&Args=true
+
+Sub Process_Globals
+    Public app As EndsMeet
+	Public Const COLOR_GET As Int = -13447886
+	Public Const COLOR_BLUE As Int = -16776961
+End Sub
+
+' <link>Open in browser|http://127.0.0.1:51042</link>
+Sub AppStart (Args() As String)
+    app.Initialize
+	app.Port = 51042
+    app.Get("", "Index")
+    app.Get("/update-chart", "Index")
+    app.Get("/chart-json", "Index")
+    app.Get("/api/data", "Index")
+    app.Get("/api/random", "Index")	
+    app.Start
+    StartMessageLoop
+End Sub

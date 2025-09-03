@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>B4J EndsMeet + Chart.js + HTMX</title>
+    <script src="https://unpkg.com/htmx.org@1.9.6"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #007bff;
+            --success: #28a745;
+            --danger: #dc3545;
+            --warning: #ffc107;
+            --info: #17a2b8;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            width: 100%;
+            margin: 20px 0;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-warning {
+            background: var(--warning);
+            color: black;
+        }
+
+        button:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            background: var(--success);
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            display: none;
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>B4J EndsMeet + Chart.js + HTMX</h1>
+        <p>Real-time chart updates with B4J backend</p>
+
+        <div class="controls">
+            <button class="btn-primary" hx-get="/update-chart" hx-target="#chart-script" hx-swap="innerHTML">
+                Update Chart (JS)
+            </button>
+
+            <button class="btn-success" hx-get="/chart-json" hx-swap="none"
+                hx-on::after-request="updateChartFromJson(event.detail.xhr.response)">
+                Update Chart (JSON)
+            </button>
+
+            <button class="btn-warning" hx-get="/api/data" hx-swap="none"
+                hx-on::after-request="updateFromApi(event.detail.xhr.response)">
+                API Data (Multi-series)
+            </button>
+
+            <button class="btn-danger" onclick="loadRandomData()">
+                Random Data <span class="loading" id="random-loading" style="display:none"></span>
+            </button>
+
+            <select id="chartType" onchange="changeChartType()">
+                <option value="line">Line Chart</option>
+                <option value="bar">Bar Chart</option>
+                <option value="pie">Pie Chart</option>
+                <option value="doughnut">Doughnut Chart</option>
+                <option value="radar">Radar Chart</option>
+                <option value="polarArea">Polar Area</option>
+            </select>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="myChart"></canvas>
+        </div>
+
+        <div id="chart-script"></div>
+        <div id="notification" class="notification"></div>
+    </div>
+
+    <script>
+        // Initialize chart
+        let chartType = document.getElementById('chartType').value;
+        const ctx = document.getElementById('myChart').getContext('2d');
+        window.myChart = new Chart(ctx, {
+            type: chartType,
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Data',
+                    data: [],
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    title: {
+                        display: true,
+                        text: 'Real-time Data Visualization'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            drawBorder: false
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+
+        // Handle JSON response
+        function updateChartFromJson(response) {
+            try {
+                console.log('JSON Response:', response);
+                const data = JSON.parse(response);
+                window.myChart.type = chartType;
+                window.myChart.data = data;
+                window.myChart.update();
+                showNotification('Chart updated from JSON!');
+            } catch (error) {
+                console.error('Error parsing JSON:', error);
+                showNotification('Error updating chart!', 'error');
+            }
+        }
+
+        // Handle API response
+        function updateFromApi(response) {
+            try {
+                console.log('API Response:', response);
+                const result = JSON.parse(response);
+                if (result.success) {
+                    window.myChart.type = result.type;
+                    window.myChart.data = result.data;
+                    window.myChart.update();
+                    showNotification('Multi-series data loaded!');
+                }
+            } catch (error) {
+                console.error('API error:', error);
+            }
+        }
+
+        // Load random data with parameters
+        function loadRandomData() {
+            const loading = document.getElementById('random-loading');
+            loading.style.display = 'inline-block';
+            // console.log('chartType:', this.chartType);
+
+            fetch(`/api/random?type=${chartType}&points=6`)
+                .then(response => response.json())
+                .then(data => {
+                    window.myChart.type = data.type;
+                    window.myChart.data = data.data;
+                    window.myChart.update();
+                    showNotification('Random data loaded!');
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showNotification('Error loading data!', 'error');
+                })
+                .finally(() => {
+                    loading.style.display = 'none';
+                });
+        }
+
+        // Change chart type
+        function changeChartType() {
+            console.log('Changing chart type...');
+            const type = document.getElementById('chartType').value;
+            window.myChart.type = type;
+            window.myChart.update();
+        }
+
+        // Show notification
+        function showNotification(message, type = 'success') {
+            const notif = document.getElementById('notification');
+            notif.textContent = message;
+            notif.style.background = type === 'error' ? 'var(--danger)' : 'var(--success)';
+            notif.style.display = 'block';
+            setTimeout(() => { notif.style.display = 'none'; }, 3000);
+        }
+
+        // Global functions for JS responses
+        window.showNotification = showNotification;
+    </script>
+</body>
+</html>

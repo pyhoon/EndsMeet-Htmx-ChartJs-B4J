@@ -1,0 +1,9 @@
+# ignore files
+
+# ignore ALL files in these directories
+AutoBackups/
+Objects/b4xlibs/
+Objects/bin/
+Objects/logs/
+Objects/shell/
+Objects/src/
