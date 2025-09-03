@@ -183,8 +183,6 @@ Sub GetRandomData
     If dataPoints > 12 Then dataPoints = 12
     If dataPoints < 3 Then dataPoints = 3
 
-    
-	
     Dim labels As List
     labels.Initialize
     Dim data As List
