@@ -133,7 +133,7 @@ Sub UpdateChartData
         showNotification('Chart updated via JS response!');
     }
     </script>"$
-	Response.ContentType = WebApiUtils.CONTENT_TYPE_HTML
+	Response.ContentType = WebApiUtils.MIME_TYPE_HTML
 	Response.Write(js)
 End Sub
 
@@ -155,7 +155,7 @@ Sub GetChartJson
     )
 	Dim json As String = ChartData.As(JSON).ToString
 	Log(json)
-    Response.ContentType = WebApiUtils.CONTENT_TYPE_JSON
+    Response.ContentType = WebApiUtils.MIME_TYPE_JSON
     Response.Write(json)
 End Sub
 
@@ -189,7 +189,7 @@ Sub GetChartDataApi
     )
 	Dim json As String = ApiData.As(JSON).ToString
 	Log(json)
-    Response.ContentType = WebApiUtils.CONTENT_TYPE_JSON
+    Response.ContentType = WebApiUtils.MIME_TYPE_JSON
     Response.Write(json)
 End Sub
 
@@ -250,7 +250,7 @@ Sub GetRandomData
     )
 	Dim json As String = RandomData.As(JSON).ToString
 	Log(json)
-	Response.ContentType = WebApiUtils.CONTENT_TYPE_JSON
+	Response.ContentType = WebApiUtils.MIME_TYPE_JSON
 	Response.Write(json)
 End Sub
 
