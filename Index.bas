@@ -80,6 +80,7 @@ End Sub
 Private Sub ShowIndexPage
 	Dim content As String = File.ReadString(File.DirAssets, "index.html")
 	WebApiUtils.ReturnHTML(content, Response)
+	UpdateChartData
 End Sub
 
 Sub UpdateChartData
